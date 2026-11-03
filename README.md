@@ -2,7 +2,7 @@
 
 A League-of-Legends-flavoured 3D duck race that turns "what do we do tonight" or "who's on which team" into an event. Type the names, pick a mode, and watch rubber ducks race down Summoner's River with two duck shoutcasters, river objectives and an instant replay. The finish order splits everyone into Blue and Red side.
 
-**Live demo:** https://hazzjc.github.io/DuckRaceDecider/
+**Live demo:** https://hazzjc.github.io/DuckRaceDecider2/ (the original 1.0 is still at https://hazzjc.github.io/DuckRaceDecider/)
 
 ## What's in 2.0
 
