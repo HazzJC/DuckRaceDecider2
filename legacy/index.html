@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>League of Legends Duck Racer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --slate-950:#020617;
+      --slate-900:#0f172a;
+      --slate-800:#1e293b;
+      --slate-700:#334155;
+      --slate-600:#475569;
+      --water-1:#0b2a66;
+      --water-2:#071a3f;
+      --glow: 0 0 18px rgba(34,211,238,.35);
+    }
+
+    body{
+      font-family: Roboto, sans-serif;
+      background: radial-gradient(1200px 800px at 50% 0%, rgba(56,189,248,.18), transparent 55%),
+                  radial-gradient(800px 500px at 0% 100%, rgba(99,102,241,.18), transparent 60%),
+                  var(--slate-900);
+      color:#fff;
+      overflow-x:hidden;
+      user-select:none;
+    }
+
+    .pixel-font{ font-family: "Press Start 2P", cursive; }
+
+    ::-webkit-scrollbar{ width:6px; }
+    ::-webkit-scrollbar-track{ background:rgba(0,0,0,0.3); }
+    ::-webkit-scrollbar-thumb{ background:var(--slate-600); border-radius:4px; }
+
+    /* Track visuals */
+    .track-viewport{
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(900px 220px at 50% 0%, rgba(255,255,255,.08), transparent 65%),
+        radial-gradient(700px 220px at 70% 100%, rgba(34,211,238,.10), transparent 70%),
+        linear-gradient(180deg, rgba(2,6,23,.45), rgba(2,6,23,.15));
+    }
+
+    .water-surface{
+      position:absolute;
+      inset:0;
+      background:
+        repeating-linear-gradient(45deg, var(--water-1), var(--water-1) 10px, var(--water-2) 10px, var(--water-2) 20px);
+      animation:tide 20s linear infinite;
+      filter:saturate(1.1) contrast(1.05);
+    }
+    @keyframes tide{ 0%{ background-position:0 0; } 100%{ background-position:60px 0; } }
+
+    .water-ripples{
+      position:absolute;
+      inset:-40px;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.08), transparent 35%),
+        radial-gradient(circle at 60% 70%, rgba(255,255,255,.06), transparent 40%),
+        radial-gradient(circle at 80% 20%, rgba(255,255,255,.05), transparent 45%);
+      animation:ripples 8s ease-in-out infinite alternate;
+      mix-blend-mode: overlay;
+      pointer-events:none;
+    }
+    @keyframes ripples{ from{ transform:translateY(0); opacity:.65; } to{ transform:translateY(18px); opacity:.85; } }
+
+    /* Parallax sky */
+    .sky-layer{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:0;
+    }
+    .sky-gradient{
+      background: radial-gradient(900px 420px at 50% 0%, rgba(250,204,21,.12), transparent 60%),
+                  radial-gradient(900px 520px at 20% 10%, rgba(59,130,246,.18), transparent 60%),
+                  linear-gradient(180deg, rgba(2,6,23,.55), rgba(2,6,23,0));
+      opacity:.95;
+    }
+    .stars{
+      background-image:
+        radial-gradient(circle at 12% 35%, rgba(255,255,255,.65) 0 1px, transparent 2px),
+        radial-gradient(circle at 25% 15%, rgba(255,255,255,.55) 0 1px, transparent 2px),
+        radial-gradient(circle at 63% 22%, rgba(255,255,255,.5) 0 1px, transparent 2px),
+        radial-gradient(circle at 77% 45%, rgba(255,255,255,.55) 0 1px, transparent 2px),
+        radial-gradient(circle at 86% 18%, rgba(255,255,255,.55) 0 1px, transparent 2px),
+        radial-gradient(circle at 42% 42%, rgba(255,255,255,.5) 0 1px, transparent 2px);
+      opacity:.55;
+      filter: blur(.2px);
+    }
+
+    .clouds{
+      background:
+        radial-gradient(120px 40px at 15% 30%, rgba(255,255,255,.10), transparent 70%),
+        radial-gradient(160px 50px at 45% 22%, rgba(255,255,255,.08), transparent 70%),
+        radial-gradient(140px 45px at 70% 35%, rgba(255,255,255,.09), transparent 70%),
+        radial-gradient(180px 55px at 90% 20%, rgba(255,255,255,.07), transparent 70%);
+      opacity:.75;
+      animation: drift 22s linear infinite;
+    }
+    @keyframes drift{
+      0%{ transform:translateX(0); }
+      100%{ transform:translateX(-220px); }
+    }
+
+    /* Lane */
+    .lane{
+      position:relative;
+      height:78px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: linear-gradient(90deg, rgba(15,23,42,.40), rgba(15,23,42,.18), rgba(15,23,42,.40));
+    }
+    .lane::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      top:0;
+      height:1px;
+      background: linear-gradient(90deg, transparent, rgba(34,211,238,.35), transparent);
+      opacity:.4;
+    }
+
+    .duck-wrapper{
+      position:absolute;
+      z-index:25;
+      will-change: transform;
+      transition: filter .08s linear;
+    }
+
+    /* Finish line flags */
+    .finish-line{
+      position:absolute;
+      top:0;
+      bottom:0;
+      width:26px;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.22), rgba(255,255,255,.22) 12px, transparent 12px, transparent 24px);
+      border-left: 2px solid rgba(255,255,255,.35);
+      border-right: 2px solid rgba(255,255,255,.35);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.15), 0 0 24px rgba(255,255,255,.08);
+      z-index:5;
+    }
+    .finish-banner{
+      position:absolute;
+      top:16px;
+      left:50%;
+      transform: translateX(-50%) rotate(-90deg);
+      font-size:10px;
+      letter-spacing:.14em;
+      color: rgba(255,255,255,.65);
+      text-shadow: 1px 1px 0 rgba(0,0,0,.9);
+      white-space:nowrap;
+      font-family:"Press Start 2P", cursive;
+    }
+
+    /* Status */
+    .speed-boost{ filter: drop-shadow(0 0 14px rgba(34,211,238,.9)); }
+    .stumble{ filter: grayscale(.5) brightness(.9); }
+    .frozen{ filter: brightness(1.15) sepia(1) hue-rotate(180deg) saturate(3) drop-shadow(0 0 10px rgba(96,165,250,.7)); }
+    .ignite{ filter: drop-shadow(0 0 12px rgba(239,68,68,.7)); }
+
+    .ice-block{
+      position:absolute;
+      inset:-8px;
+      background: rgba(135,206,235,0.50);
+      border: 2px solid rgba(255,255,255,.85);
+      z-index:40;
+      clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
+      animation: freezePulse .22s infinite alternate;
+      pointer-events:none;
+    }
+    @keyframes freezePulse{ from{ transform:scale(1); opacity:.78; } to{ transform:scale(1.05); opacity:.92; } }
+
+    .ignite-effect{
+      position:absolute;
+      inset:0;
+      background: radial-gradient(circle at 45% 70%, rgba(255,69,0,.55) 0%, transparent 70%);
+      animation: burn .5s infinite;
+      z-index:35;
+      pointer-events:none;
+    }
+    @keyframes burn{
+      0%{ opacity:.55; transform:scale(.92); }
+      50%{ opacity:1; transform:scale(1.08); }
+      100%{ opacity:.55; transform:scale(.92); }
+    }
+
+    .shield-bubble{
+      position:absolute;
+      inset:-10px;
+      border-radius:9999px;
+      background: radial-gradient(circle at 40% 30%, rgba(255,255,255,.25), transparent 55%),
+                  radial-gradient(circle at 60% 70%, rgba(34,211,238,.18), transparent 60%);
+      border: 2px solid rgba(34,211,238,.35);
+      box-shadow: var(--glow);
+      z-index:34;
+      pointer-events:none;
+      animation: bubble .9s ease-in-out infinite alternate;
+    }
+    @keyframes bubble{ from{ transform:scale(.98); opacity:.78; } to{ transform:scale(1.03); opacity:.92; } }
+
+    /* Powerups */
+    .powerup{
+      position:absolute;
+      width:28px;
+      height:28px;
+      border-radius:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      background: rgba(15,23,42,.70);
+      border: 1px solid rgba(148,163,184,.35);
+      box-shadow: 0 10px 18px rgba(0,0,0,.25);
+      z-index:20;
+      animation: popFloat 1.2s ease-in-out infinite alternate;
+      pointer-events:none;
+    }
+    @keyframes popFloat{
+      from{ transform: translateY(0) scale(.98); }
+      to{ transform: translateY(-6px) scale(1.02); }
+    }
+    .powerup::after{
+      content:"";
+      position:absolute;
+      inset:-10px;
+      border-radius:14px;
+      background: radial-gradient(circle, rgba(255,255,255,.12), transparent 60%);
+      opacity:.55;
+      pointer-events:none;
+    }
+
+    /* Floating text */
+    .float-text{
+      position:absolute;
+      left:50%;
+      top:-18px;
+      transform: translateX(-50%);
+      font-size:10px;
+      font-weight:800;
+      text-shadow: 1px 1px 0 rgba(0,0,0,.9);
+      animation: floatUp 1s forwards;
+      pointer-events:none;
+      z-index:120;
+      white-space:nowrap;
+    }
+    @keyframes floatUp{
+      0%{ top:-18px; opacity:1; }
+      100%{ top:-54px; opacity:0; }
+    }
+
+    /* Countdown */
+    #countdown-overlay{
+      pointer-events:none;
+      text-shadow: 4px 4px 0 rgba(0,0,0,.92);
+    }
+    .countdown-animate{ animation: pulseCount .85s ease-out forwards; }
+    @keyframes pulseCount{
+      0%{ transform:scale(.55); opacity:0; }
+      50%{ transform:scale(1.18); opacity:1; }
+      100%{ transform:scale(1); opacity:0; }
+    }
+
+    /* Toast */
+    .toast-enter{
+      opacity:1 !important;
+      transform: translate(-50%, 0) !important;
+    }
+
+    /* Pause overlay */
+    .pause-overlay{
+      position:absolute;
+      inset:0;
+      z-index:80;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background: rgba(2,6,23,.55);
+      backdrop-filter: blur(4px);
+    }
+    .pause-overlay.show{ display:flex; }
+
+    /* Chat */
+    #hud-container{ background: var(--slate-800); border-top:4px solid var(--slate-700); }
+    .chat-msg{ animation: fadeUp .18s ease-out; word-wrap: break-word; }
+    @keyframes fadeUp{ from{ opacity:0; transform:translateY(5px);} to{ opacity:1; transform:translateY(0);} }
+
+    /* Reduced motion */
+    .reduced-motion *{
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* SVG patterns */
+    svg.defs{ position:absolute; width:0; height:0; pointer-events: none;}
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+  <svg class="defs" aria-hidden="true">
+    <defs>
+      <pattern id="global-pat-dots" x="0" y="0" width="0.2" height="0.2" patternUnits="objectBoundingBox">
+        <circle cx="5" cy="5" r="2" fill="rgba(255,255,255,0.38)" />
+      </pattern>
+      <pattern id="global-pat-stripes" x="0" y="0" width="0.1" height="0.1" patternUnits="objectBoundingBox" patternTransform="rotate(45)">
+        <rect x="0" y="0" width="2" height="10" fill="rgba(255,255,255,0.28)" />
+      </pattern>
+    </defs>
+  </svg>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed top-8 left-1/2 transform -translate-x-1/2 translate-y-[-20px] bg-green-500 text-black font-bold py-3 px-6 rounded-full shadow-lg z-50 transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span id="toast-msg">Copied to clipboard!</span>
+  </div>
+
+  <!-- HEADER -->
+  <header class="text-center mb-6">
+    <h1 class="text-2xl md:text-5xl text-yellow-400 pixel-font mb-4 leading-tight drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]">
+      SUMMONER'S RIFT<br>DUCK RACE
+    </h1>
+    <div class="flex flex-wrap justify-center gap-3 text-sm text-slate-400 items-center">
+      <p>Names • Race • Teams</p>
+      <button id="mute-btn" class="px-2 py-1 bg-slate-800 rounded border border-slate-600 hover:bg-slate-700 transition">
+        🔊 Sound On
+      </button>
+      <button id="reduce-motion-btn" class="px-2 py-1 bg-slate-800 rounded border border-slate-600 hover:bg-slate-700 transition">
+        🌀 Motion On
+      </button>
+    </div>
+  </header>
+
+  <!-- SETUP -->
+  <div id="setup-screen" class="w-full max-w-2xl bg-slate-800 rounded-xl shadow-2xl p-6 border-2 border-slate-700">
+    <label class="block text-blue-300 font-bold mb-2">Summoner Names (One per line)</label>
+    <textarea id="player-input" class="w-full h-48 bg-slate-900 text-white border border-slate-600 rounded-lg p-4 focus:ring-2 focus:ring-blue-500 focus:outline-none mb-4 pixel-font text-xs md:text-sm leading-6" placeholder="TopLaner&#10;JungleKing&#10;MidDiff&#10;ADCarry&#10;SupportMain"></textarea>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div>
+        <label class="block text-blue-300 font-bold mb-2 flex justify-between">
+          <span>Race Duration</span>
+          <span class="text-yellow-400"><span id="duration-display">10</span>s</span>
+        </label>
+        <input type="range" id="duration-input" min="5" max="30" value="10" step="1"
+          class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-yellow-500 hover:accent-yellow-400" />
+        <div class="flex justify-between text-xs text-slate-500 mt-1">
+          <span>5s</span><span>30s</span>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-blue-300 font-bold mb-2">Race Mode</label>
+        <select id="mode-input" class="w-full bg-slate-900 text-white border border-slate-600 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <option value="blind">Blind Pick (Catch-up only)</option>
+          <option value="ranked">Ranked (Pure Race)</option>
+          <option value="aram">ARAM Mayhem (All Events)</option>
+        </select>
+        <div class="mt-2 flex items-center gap-2 text-xs text-slate-400">
+          <input id="particles-input" type="checkbox" checked class="accent-yellow-500 cursor-pointer">
+          <label for="particles-input" class="cursor-pointer">Enable particles</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-4">
+      <button id="start-btn" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 rounded-lg shadow-lg transition transform hover:scale-105 pixel-font text-xs md:text-sm">
+        START RACE
+      </button>
+    </div>
+  </div>
+
+  <!-- RACE -->
+  <div id="race-screen" class="hidden w-full max-w-6xl relative flex flex-col shadow-2xl rounded-lg overflow-hidden border-2 border-slate-600">
+
+    <!-- Top Bar -->
+    <div class="flex flex-wrap gap-3 justify-between items-center px-4 py-2 bg-slate-800 border-b border-slate-600">
+      <div class="text-yellow-400 pixel-font text-lg md:text-xl">TIME: <span id="timer">0.00</span>s</div>
+
+      <div class="flex items-center gap-2 md:gap-4">
+        
+        <!-- Chat frequency slider -->
+        <div class="flex items-center gap-2 text-xs text-slate-300 bg-slate-900/50 px-2 py-1.5 rounded border border-slate-700">
+          <span class="hidden md:inline" title="Chat Message Rate">💬 Rate</span>
+          <input id="chat-freq-input" type="range" min="0.2" max="6.0" value="2.0" step="0.2" class="accent-cyan-500 w-12 md:w-20 cursor-pointer">
+          <span id="chat-freq-label" class="w-8 text-right font-mono">2.0s</span>
+        </div>
+
+        <!-- Speed slider -->
+        <div class="flex items-center gap-2 text-xs text-slate-300 bg-slate-900/50 px-2 py-1.5 rounded border border-slate-700">
+          <span class="hidden md:inline">⚡ Speed</span>
+          <input id="speed-input" type="range" min="0.6" max="1.6" value="1" step="0.05" class="accent-yellow-500 w-12 md:w-20 cursor-pointer">
+          <span id="speed-label" class="w-10 text-right font-mono">1.00x</span>
+        </div>
+
+        <button id="pause-btn" class="px-2 py-1.5 bg-slate-900 rounded border border-slate-600 hover:bg-slate-700 text-xs text-white transition">
+          ⏸ Pause
+        </button>
+
+        <button id="skip-btn" class="text-xs text-slate-400 hover:text-white underline hidden md:inline-block">
+          Skip
+        </button>
+      </div>
+    </div>
+
+    <!-- Mini-map -->
+    <div class="px-4 py-2 bg-slate-900/60 border-b border-slate-700">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Mini-map</div>
+        <div class="text-[10px] text-slate-500" id="minimap-hint"></div>
+      </div>
+      <div id="minimap" class="relative h-3 rounded bg-slate-800 border border-slate-700 overflow-hidden">
+        <div class="absolute inset-y-0 right-0 w-[3px] bg-white/40"></div>
+      </div>
+    </div>
+
+    <!-- Track -->
+    <div id="track-container" class="track-viewport relative shadow-inner" style="min-height: 420px;">
+
+      <!-- Parallax sky -->
+      <div id="sky" class="sky-layer sky-gradient"></div>
+      <div id="stars" class="sky-layer stars"></div>
+      <div id="clouds" class="sky-layer clouds"></div>
+
+      <!-- Water -->
+      <div class="water-surface"></div>
+      <div class="water-ripples"></div>
+
+      <!-- World viewport and world -->
+      <div id="world-viewport" class="relative z-10" style="height: 420px; overflow:hidden;">
+        <div id="world" class="relative" style="height: 420px;">
+          <!-- FX canvas (Moved into world to anchor particles naturally) -->
+          <canvas id="fx-canvas" class="absolute inset-0 z-30 pointer-events-none"></canvas>
+          <!-- Finish line injected -->
+          <!-- Lanes injected -->
+          <!-- Powerups injected -->
+        </div>
+      </div>
+
+      <!-- Countdown -->
+      <div id="countdown-overlay" class="absolute inset-0 flex items-center justify-center z-50 hidden">
+        <span id="countdown-text" class="text-6xl md:text-9xl font-bold text-yellow-400 pixel-font drop-shadow-[0_5px_5px_rgba(0,0,0,0.85)]">3</span>
+      </div>
+
+      <!-- Pause overlay -->
+      <div id="pause-overlay" class="pause-overlay">
+        <div class="text-center">
+          <div class="text-4xl md:text-6xl text-cyan-300 pixel-font drop-shadow-[0_4px_0_rgba(0,0,0,0.9)]">PAUSED</div>
+          <div class="mt-4 text-slate-300 text-sm">Press Space or click Pause</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- HUD -->
+    <div id="hud-container" class="h-52 md:h-60 p-4 flex gap-4">
+      <!-- Chat -->
+      <div class="flex-1 flex flex-col bg-black/40 border border-slate-600 rounded overflow-hidden">
+        <div class="bg-slate-800/80 p-1 px-2 text-[10px] text-slate-400 uppercase font-bold border-b border-slate-600 flex justify-between">
+          <span>[All] Chat</span>
+          <span class="text-slate-500 hidden md:inline">Click duck name to Cheer</span>
+        </div>
+        <div id="chat-box" class="flex-1 overflow-y-auto p-2 text-xs md:text-sm">
+          <div class="text-slate-500 italic mb-1">Welcome to Summoner's Rift!</div>
+          <div class="text-yellow-600 italic mb-1">Minions have spawned.</div>
+          <div id="chat-content"></div>
+        </div>
+
+        <div class="border-t border-slate-700 bg-slate-900/50 p-2 flex gap-2">
+          <input id="spectator-input" class="flex-1 bg-slate-950/70 border border-slate-700 rounded px-3 py-2 text-xs md:text-sm outline-none focus:ring-2 focus:ring-cyan-400"
+                 placeholder="Spectator message (Enter to send)" />
+          <button id="spectator-send" class="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded text-xs transition">
+            Send
+          </button>
+        </div>
+      </div>
+
+      <!-- Side panel -->
+      <div class="w-44 md:w-56 hidden md:flex flex-col gap-2">
+        <div class="flex-1 bg-black/40 border border-slate-600 rounded p-3">
+          <div class="text-slate-300 font-bold text-xs mb-2">MATCH INFO</div>
+          <div class="text-[11px] text-slate-400 leading-5">
+            <div><span class="text-slate-300">Mode:</span> <span id="mode-label">Blind Pick</span></div>
+            <div><span class="text-slate-300">World:</span> <span id="world-label">Long</span></div>
+            <div id="powerup-status-label" class="mt-2 text-[10px] text-slate-500">Rubberbanding Active</div>
+          </div>
+        </div>
+        <div class="h-20 bg-black/40 border border-slate-600 rounded p-2 flex items-center justify-center">
+          <div class="text-yellow-400 pixel-font text-xs text-center drop-shadow-[0_2px_0_rgba(0,0,0,0.9)]">
+            DUCK<br>SLAYER
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-screen" class="hidden w-full max-w-5xl">
+    <div class="text-center mb-6">
+      <div class="inline-block bg-slate-800 rounded-lg px-4 py-2 border border-slate-600 shadow-md">
+        <span class="text-slate-400 text-xs uppercase font-bold tracking-widest">All-Time Record</span>
+        <div id="best-record-display" class="text-yellow-400 pixel-font text-lg md:text-xl mt-1">--</div>
+      </div>
+    </div>
+
+    <div id="podium" class="flex justify-center items-end gap-2 md:gap-4 mb-8 h-52"></div>
+
+    <div class="flex flex-col md:flex-row justify-center items-center mb-6 gap-4">
+      <button onclick="toggleTeamMode('alternating')" id="btn-alt" class="px-4 py-2 rounded bg-blue-600 text-white font-bold ring-2 ring-blue-300 transition">Alternating</button>
+      <button onclick="toggleTeamMode('split')" id="btn-split" class="px-4 py-2 rounded bg-slate-700 text-slate-300 font-bold hover:bg-slate-600 transition">Top/Bottom Split</button>
+      <button onclick="toggleSwap()" class="px-4 py-2 rounded bg-slate-600 hover:bg-slate-500 text-white font-bold border border-slate-500 flex items-center gap-2 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+        </svg>
+        Swap Sides
+      </button>
+      <button onclick="copyAll()" class="px-6 py-2 rounded bg-yellow-600 hover:bg-yellow-500 text-black font-bold transition flex items-center gap-2 shadow-lg text-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+        </svg>
+        Copy Teams
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="bg-slate-900 border-t-4 border-blue-500 rounded-lg p-6 shadow-xl relative overflow-hidden">
+        <div class="relative z-10 flex flex-col items-center mb-4">
+          <h2 class="text-2xl font-bold text-blue-400 pixel-font text-center">BLUE SIDE</h2>
+        </div>
+        <ul id="blue-team-list" class="space-y-3 relative z-10"></ul>
+      </div>
+
+      <div class="bg-slate-900 border-t-4 border-red-500 rounded-lg p-6 shadow-xl relative overflow-hidden">
+        <div class="relative z-10 flex flex-col items-center mb-4">
+          <h2 class="text-2xl font-bold text-red-400 pixel-font text-center">RED SIDE</h2>
+        </div>
+        <ul id="red-team-list" class="space-y-3 relative z-10"></ul>
+      </div>
+    </div>
+
+    <div class="mt-8 flex gap-4 justify-center">
+      <button onclick="resetGame()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-lg pixel-font text-xs shadow-lg transform hover:scale-105 transition">NEW PLAYERS</button>
+      <button onclick="rematch()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 px-8 rounded-lg pixel-font text-xs shadow-lg transform hover:scale-105 transition flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        REMATCH
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* --------------------------
+       Audio (Web Audio API)
+    -------------------------- */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let isMuted = false;
+
+    const Sound = {
+      tone(freq, type, duration, vol = 0.1) {
+        if (isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      },
+      quack() {
+        if (isMuted) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(320 + Math.random() * 110, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(110, audioCtx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.10, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.16);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      },
+      ice() { this.tone(1800, "sine", 0.25, 0.18); },
+      fire() { this.tone(90, "sawtooth", 0.45, 0.12); },
+      pop() { this.tone(520, "triangle", 0.12, 0.08); },
+      block() { this.tone(760, "square", 0.12, 0.10); },
+      count(val){
+        if (val > 0) this.tone(440, "square", 0.1, 0.12);
+        else this.tone(920, "square", 0.35, 0.12);
+      },
+      win(){
+        [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+          setTimeout(() => this.tone(f, "triangle", 0.35, 0.10), i * 140);
+        });
+      }
+    };
+
+    /* --------------------------
+       Helpers
+    -------------------------- */
+    const randItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const randRange = (min, max) => Math.random() * (max - min) + min;
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    /* --------------------------
+       Duck visuals
+    -------------------------- */
+    const HATS = ["none", "tophat", "cap", "crown", "viking", "propeller", "wizard", "halo", "sombrero", "pirate"];
+    const PATTERNS = ["none", "dots", "stripes"];
+    const CHAT_COLORS = [
+      "text-purple-400", "text-green-400", "text-yellow-400",
+      "text-pink-400", "text-cyan-400", "text-orange-400",
+      "text-emerald-400", "text-rose-400", "text-fuchsia-400"
+    ];
+
+    function getHatSVG(type) {
+      // Adjusted all paths to standardise the base alignment around Y=32
+      switch (type) {
+        case "tophat": return `<path d="M65,12 h20 v15 h-20 z M55,27 h40 v5 h-40 z" fill="#111" stroke="white" stroke-width="1"/>`;
+        case "cap": return `<path d="M60,27 a15,15 0 0,1 30,0" fill="#2563eb" stroke="white"/><rect x="85" y="24" width="15" height="5" fill="#2563eb" stroke="white"/>`;
+        case "crown": return `<path d="M60,12 l10,15 l10,-15 l10,15 l10,-15 v20 h-40 z" fill="#fbbf24" stroke="#b45309"/>`;
+        case "viking": return `<path d="M60,27 q15,-20 30,0 v5 h-30 z" fill="#9ca3af"/><path d="M60,27 q-10,-15 -5,-25" fill="none" stroke="#ddd" stroke-width="3"/><path d="M90,27 q10,-15 5,-25" fill="none" stroke="#ddd" stroke-width="3"/>`;
+        case "propeller": return `
+          <g>
+            <rect x="70" y="27" width="10" height="5" fill="#ef4444"/>
+            <rect x="74" y="20" width="2" height="7" fill="#111"/>
+            <g class="prop">
+              <ellipse cx="75" cy="20" rx="22" ry="3" fill="#60a5fa" opacity="0.85"/>
+            </g>
+          </g>`;
+        case "wizard": return `<path d="M60,2 L85,32 L65,32 Z" fill="#8b5cf6" stroke="white"/><ellipse cx="75" cy="32" rx="18" ry="4" fill="#8b5cf6" stroke="#4c1d95"/>`;
+        case "halo": return `<ellipse cx="75" cy="4" rx="14" ry="4" fill="none" stroke="#fef08a" stroke-width="3" filter="drop-shadow(0 0 4px #fef08a)"/>`;
+        case "sombrero": return `<path d="M65,32 Q75,20 85,32 Z" fill="#ef4444"/><ellipse cx="75" cy="32" rx="26" ry="6" fill="#f59e0b" stroke="#b45309"/>`;
+        case "pirate": return `<path d="M55,30 Q75,15 95,30 Z" fill="#111"/><rect x="55" y="30" width="40" height="6" fill="#111" rx="2"/><circle cx="75" cy="25" r="3" fill="white"/>`;
+        default: return "";
+      }
+    }
+
+    function getPatternSVG(type) {
+      if (type === "dots") {
+        return `<path d="M10,60 Q10,30 40,30 Q50,10 70,10 Q90,10 90,30 Q90,45 75,50 Q95,50 95,70 Q95,90 60,90 L20,90 Q10,90 10,60" fill="url(#global-pat-dots)" stroke="none" opacity="0.9"/>`;
+      }
+      if (type === "stripes") {
+        return `<path d="M10,60 Q10,30 40,30 Q50,10 70,10 Q90,10 90,30 Q90,45 75,50 Q95,50 95,70 Q95,90 60,90 L20,90 Q10,90 10,60" fill="url(#global-pat-stripes)" stroke="none" opacity="0.9"/>`;
+      }
+      return "";
+    }
+
+    function getDuckSVG(color, hat, pattern, cssClass = "w-14 h-14 md:w-16 md:h-16") {
+      const hasProp = hat === "propeller";
+      return `
+        <svg viewBox="0 0 120 100" class="${cssClass} filter drop-shadow-lg" style="overflow: visible;">
+          <style>
+            .wing { transform-origin: 42px 62px; animation: flap .28s ease-in-out infinite alternate; }
+            @keyframes flap { from { transform: rotate(-2deg) translateY(0); } to { transform: rotate(6deg) translateY(-1px); } }
+            .prop { transform-origin: 75px 20px; ${hasProp ? "animation: spin .22s linear infinite;" : ""} }
+            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            .shine { opacity: .20; }
+          </style>
+
+          <g>
+            <path d="M10,60 Q10,30 40,30 Q50,10 70,10 Q90,10 90,30 Q90,45 75,50 Q95,50 95,70 Q95,90 60,90 L20,90 Q10,90 10,60"
+              fill="${color}" stroke="black" stroke-width="2"/>
+            ${getPatternSVG(pattern)}
+
+            <path class="shine" d="M18,56 Q22,38 40,36 Q52,18 68,18 Q83,18 84,32 Q74,32 70,40 Q58,52 35,56 Z"
+              fill="rgba(255,255,255,0.35)" stroke="none"/>
+
+            <path class="wing" d="M30,60 Q40,40 60,60 Q50,80 30,60"
+              fill="rgba(0,0,0,0.18)" stroke="black" stroke-width="0.6"/>
+
+            <circle cx="75" cy="25" r="4" fill="white"/>
+            <circle cx="77" cy="25" r="1.6" fill="black"/>
+
+            <path d="M90,30 Q102,24 102,36 Q96,46 88,41"
+              fill="#fb923c" stroke="black" stroke-width="1"/>
+
+            <!-- Hat Group translation seats hats flush on the duck's head curvature -->
+            <g transform="translate(0,-24)">
+              ${getHatSVG(hat)}
+            </g>
+          </g>
+        </svg>
+      `;
+    }
+
+    const getRandomColor = () => `hsl(${Math.floor(Math.random() * 360)}, 78%, 60%)`;
+
+    /* --------------------------
+       Chat lines
+    -------------------------- */
+    const LINES = {
+      WINNING: [
+        "Quack diff. Check the replay.",
+        "Built different. Hatched better.",
+        "Lane kingdom. Pond emperor.",
+        "Skill issue, but like… spiritually.",
+        "I’m speedrunning your confidence.",
+        "EZ", "tutorial?", "catch me if u can", "beep beep", "too fast", "clean"
+      ],
+      LAST: [
+        "Lag. Pond lag.",
+        "I’m scaling emotionally, not mechanically.",
+        "We win these next spawn. Trust.",
+        "I’m limit testing my patience.",
+        "I swear I’m better than this.",
+        "ff 15", "open", "x9", "my team...", "jgl???", "refund skin"
+      ],
+      TOP_HALF: [
+        "You picked that? On purpose?",
+        "Are you playing locked camera in real life?",
+        "You’re roaming but mentally.",
+        "Please stop cooking.",
+        "duck gap", "why", "stop", "???", "play safe", "vision?", "inting"
+      ],
+      RARE: [
+        "The pond whispers your misplays to me.",
+        "I saw that mistake before you made it.",
+        "Entropy favors the duck.",
+        "I win because the universe finds it funny.",
+        "Time is a circle and you still int.",
+        "This outcome was foretold in breadcrumbs."
+      ],
+      ULTRA_RARE: [
+        "I have seen every possible timeline. You lose in all of them.",
+        "The pond is disappointed in you specifically.",
+        "Skill issue but like… cosmically.",
+        "I am not trash talking. I am narrating."
+      ],
+      GENERIC: [
+        "ff", "open", "diff", "supp gap", "top gap", "mid gap", "jg gap", 
+        "why", "stop", "report", "muted", "x9", "???", "play safe", "stop inting",
+        "u slow ducky", "lag?", "rep team", "nice flash", "zzz", "bot?", "got any grapes?"
+      ],
+      CROWD: [
+        "WOOOO!",
+        "HYPE!",
+        "QUACK QUACK!",
+        "LET HIM COOK!",
+        "SEND IT!"
+      ]
+    };
+
+    /* --------------------------
+       UI refs
+    -------------------------- */
+    const screens = {
+      setup: document.getElementById("setup-screen"),
+      race: document.getElementById("race-screen"),
+      results: document.getElementById("results-screen")
+    };
+
+    const elTimer = document.getElementById("timer");
+    const elBestRecord = document.getElementById("best-record-display");
+    const elPodium = document.getElementById("podium");
+    const elBlueList = document.getElementById("blue-team-list");
+    const elRedList = document.getElementById("red-team-list");
+
+    const elCountOverlay = document.getElementById("countdown-overlay");
+    const elCountText = document.getElementById("countdown-text");
+    const elPauseOverlay = document.getElementById("pause-overlay");
+
+    const elChatContent = document.getElementById("chat-content");
+    const elChatBox = document.getElementById("chat-box");
+    const elMinimap = document.getElementById("minimap");
+
+    const elWorldViewport = document.getElementById("world-viewport");
+    const elWorld = document.getElementById("world");
+
+    const elModeLabel = document.getElementById("mode-label");
+    const elWorldLabel = document.getElementById("world-label");
+
+    const muteBtn = document.getElementById("mute-btn");
+    const reduceMotionBtn = document.getElementById("reduce-motion-btn");
+    const startBtn = document.getElementById("start-btn");
+    const pauseBtn = document.getElementById("pause-btn");
+    const skipBtn = document.getElementById("skip-btn");
+
+    const speedInput = document.getElementById("speed-input");
+    const speedLabel = document.getElementById("speed-label");
+
+    const chatFreqInput = document.getElementById("chat-freq-input");
+    const chatFreqLabel = document.getElementById("chat-freq-label");
+
+    const spectatorInput = document.getElementById("spectator-input");
+    const spectatorSend = document.getElementById("spectator-send");
+
+    /* --------------------------
+       State
+    -------------------------- */
+    const STATE = {
+      players: [],
+      racers: [],
+      finishedRacers: [],
+      isRacing: false,
+      paused: false,
+
+      raceDuration: 10,
+      mode: "blind",
+      particles: true,
+
+      // world sizing
+      laneHeight: 78,
+      duckW: 56,
+      finishPadding: 160,
+      worldW: 2200,
+      worldH: 420,
+      finishX: 2000,
+
+      // time
+      startTs: 0,
+      elapsed: 0,
+      lastFrameTs: 0,
+      timeLimitExtra: 10,
+
+      // camera
+      camX: 0,
+      camTargetX: 0,
+
+      // systems
+      chatTimer: 0,
+      usedLines: new Set(),
+      powerups: [],
+      powerupTimer: 0,
+      confettiDone: false,
+
+      teamMode: "alternating",
+      swapSides: false
+    };
+
+    /* --------------------------
+       Canvas FX
+    -------------------------- */
+    const fxCanvas = document.getElementById("fx-canvas");
+    const fx = fxCanvas.getContext("2d");
+    let FX_PARTICLES = [];
+
+    function resizeFXCanvas(){
+      const rect = document.getElementById("world").getBoundingClientRect();
+      fxCanvas.width = Math.floor(rect.width * devicePixelRatio);
+      fxCanvas.height = Math.floor(rect.height * devicePixelRatio);
+    }
+
+    function addParticle(p){
+      if (!STATE.particles) return;
+      FX_PARTICLES.push(p);
+      if (FX_PARTICLES.length > 1400) FX_PARTICLES.splice(0, 200);
+    }
+
+    function burstConfetti(x, y){
+      for (let i = 0; i < 160; i++){
+        addParticle({
+          kind: "confetti",
+          x, y,
+          vx: randRange(-220, 220),
+          vy: randRange(-360, -120),
+          life: randRange(0.9, 1.4),
+          age: 0,
+          size: randRange(2, 5),
+          hue: randRange(0, 360)
+        });
+      }
+    }
+
+    function fxSplash(x, y, speed){
+      const n = clamp(Math.floor(speed / 140), 2, 8);
+      for (let i = 0; i < n; i++){
+        addParticle({
+          kind: "splash",
+          x: x + randRange(-2, 2),
+          y: y + randRange(-4, 4),
+          vx: randRange(-80, -30) - speed * 0.35,
+          vy: randRange(-30, 10),
+          life: randRange(0.22, 0.42),
+          age: 0,
+          size: randRange(1.5, 3.5)
+        });
+      }
+    }
+
+    function fxIce(x, y){
+      for (let i = 0; i < 26; i++){
+        addParticle({
+          kind: "ice",
+          x, y,
+          vx: randRange(-130, 130),
+          vy: randRange(-160, 40),
+          life: randRange(0.25, 0.5),
+          age: 0,
+          size: randRange(1.5, 3.5)
+        });
+      }
+    }
+
+    function fxEmbers(x, y){
+      for (let i = 0; i < 18; i++){
+        addParticle({
+          kind: "ember",
+          x: x + randRange(-6, 6),
+          y: y + randRange(-6, 6),
+          vx: randRange(-60, 60),
+          vy: randRange(-120, -30),
+          life: randRange(0.4, 0.8),
+          age: 0,
+          size: randRange(1.3, 3.0)
+        });
+      }
+    }
+
+    function fxDraw(dt){
+      fx.setTransform(1, 0, 0, 1, 0, 0);
+      fx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      fx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+      const gravity = 520;
+      FX_PARTICLES = FX_PARTICLES.filter(p => (p.age += dt) < p.life);
+
+      for (const p of FX_PARTICLES){
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        if (p.kind === "confetti"){
+          p.vy += gravity * dt * 0.55;
+          p.vx *= 0.995;
+          p.vy *= 0.995;
+          fx.save();
+          fx.translate(p.x, p.y);
+          fx.rotate((p.age * 10) + (p.hue * 0.01));
+          fx.fillStyle = `hsla(${p.hue}, 90%, 65%, ${1 - (p.age / p.life)})`;
+          fx.fillRect(-p.size, -p.size / 2, p.size * 2, p.size);
+          fx.restore();
+          continue;
+        }
+
+        const alpha = 1 - (p.age / p.life);
+        if (p.kind === "splash"){
+          p.vy += gravity * dt * 0.35;
+          fx.fillStyle = `rgba(180, 240, 255, ${alpha * 0.9})`;
+          fx.beginPath();
+          fx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          fx.fill();
+          continue;
+        }
+
+        if (p.kind === "ice"){
+          p.vy += gravity * dt * 0.25;
+          fx.fillStyle = `rgba(96, 165, 250, ${alpha})`;
+          fx.fillRect(p.x, p.y, p.size, p.size);
+          continue;
+        }
+
+        if (p.kind === "ember"){
+          p.vy += gravity * dt * 0.10;
+          fx.fillStyle = `rgba(255, 140, 40, ${alpha})`;
+          fx.beginPath();
+          fx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          fx.fill();
+          continue;
+        }
+      }
+    }
+
+    /* --------------------------
+       Screen and record
+    -------------------------- */
+    function switchScreen(name){
+      Object.values(screens).forEach(el => el.classList.add("hidden"));
+      screens[name].classList.remove("hidden");
+    }
+
+    function updateBestRecordDisplay(){
+      const bestTime = localStorage.getItem("duck_racer_best");
+      const bestPlayer = localStorage.getItem("duck_racer_best_player");
+      if (bestTime){
+        elBestRecord.innerHTML = `${parseFloat(bestTime).toFixed(2)}s <span class="text-xs text-slate-400 block">by ${bestPlayer}</span>`;
+      } else {
+        elBestRecord.innerText = "--";
+      }
+    }
+
+    /* --------------------------
+       Chat
+    -------------------------- */
+    function addChatMessage(name, text, colorClass){
+      const now = new Date();
+      const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, "0")}`;
+      const msg = document.createElement("div");
+      msg.className = "chat-msg mb-1";
+      const color = colorClass || "text-white";
+      msg.innerHTML = `<span class="text-slate-500">[${time}]</span> <span class="${color} font-bold">${escapeHTML(name)}:</span> <span class="text-white">${escapeHTML(text)}</span>`;
+      elChatContent.appendChild(msg);
+      elChatBox.scrollTop = elChatBox.scrollHeight;
+    }
+
+    function escapeHTML(s){
+      return String(s).replace(/[&<>"']/g, c => ({
+        "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+      }[c]));
+    }
+
+    function createFloatingText(racerId, text, color){
+      const duck = document.getElementById(`duck-${racerId}`);
+      if (!duck) return;
+      const el = document.createElement("div");
+      el.className = "float-text";
+      el.style.color = color;
+      el.innerText = text;
+      duck.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }
+
+    /* --------------------------
+       Powerups
+    -------------------------- */
+    const POWERUPS = {
+      bread: { icon: "🥖", label: "Boost" },
+      anchor: { icon: "⚓", label: "Slow" },
+      shield: { icon: "🛡", label: "Block" },
+      portal: { icon: "🌀", label: "Blink" }
+    };
+
+    function powerupRoll(){
+      const pool = ["bread", "bread", "anchor", "shield", "portal", "anchor", "bread"];
+      return randItem(pool);
+    }
+
+    function spawnPowerup(){
+      if (!STATE.isRacing) return;
+      const lane = Math.floor(randRange(0, STATE.racers.length));
+      const type = powerupRoll();
+
+      const x = randRange(260, STATE.finishX - 260);
+      const y = lane * STATE.laneHeight + 42;
+
+      const el = document.createElement("div");
+      el.className = "powerup";
+      el.dataset.type = type;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.innerText = POWERUPS[type].icon;
+
+      elWorld.appendChild(el);
+
+      STATE.powerups.push({
+        id: crypto.randomUUID(),
+        lane,
+        type,
+        x,
+        y,
+        el,
+        collected: false
+      });
+    }
+
+    function cleanupPowerups(){
+      STATE.powerups = STATE.powerups.filter(p => {
+        if (p.collected) return false;
+        if (p.x < STATE.camX - 200) return false;
+        return true;
+      });
+    }
+
+    function collectPowerup(racer, p){
+      p.collected = true;
+      if (p.el) p.el.remove();
+      Sound.pop();
+
+      const yWorld = racer.y + 38;
+      const xWorld = racer.x + 40;
+
+      if (p.type === "bread"){
+        racer.state = "boost";
+        racer.stateTimer = 0.9;
+        racer.stats.powerups++;
+        racer.stats.bread++;
+        createFloatingText(racer.id, "BREAD!", "#facc15");
+        for (let i = 0; i < 10; i++) fxSplash(xWorld, yWorld, 240);
+        Sound.quack();
+      }
+
+      if (p.type === "anchor"){
+        racer.state = "stumble";
+        racer.stateTimer = 0.8;
+        racer.stats.powerups++;
+        racer.stats.anchor++;
+        createFloatingText(racer.id, "ANCHORED!", "#94a3b8");
+        for (let i = 0; i < 8; i++) fxSplash(xWorld, yWorld, 90);
+      }
+
+      if (p.type === "shield"){
+        racer.shield = true;
+        racer.stats.powerups++;
+        racer.stats.shield++;
+        createFloatingText(racer.id, "SHIELD!", "#22d3ee");
+        for (let i = 0; i < 14; i++) fxSplash(xWorld, yWorld, 120);
+      }
+
+      if (p.type === "portal"){
+        const jump = randRange(90, 180);
+        racer.x = Math.min(racer.x + jump, STATE.finishX - 10);
+        racer.stats.powerups++;
+        racer.stats.portal++;
+        createFloatingText(racer.id, "BLINK!", "#a78bfa");
+        for (let i = 0; i < 18; i++) addParticle({
+          kind:"ice",
+          x: xWorld + randRange(-10, 10),
+          y: yWorld + randRange(-10, 10),
+          vx: randRange(-140, 140),
+          vy: randRange(-200, 30),
+          life: randRange(0.18, 0.35),
+          age: 0,
+          size: randRange(1.5, 3.2)
+        });
+      }
+    }
+
+    /* --------------------------
+       Spells
+    -------------------------- */
+    function applySpellEffect(target, spellType, caster){
+      if (target.finished) return;
+
+      const yWorld = target.y + 38;
+      const xWorld = target.x + 44;
+
+      if (target.shield){
+        target.shield = false;
+        target.stats.blocks++;
+        Sound.block();
+        createFloatingText(target.id, "BLOCK!", "#22d3ee");
+        for (let i = 0; i < 20; i++) fxSplash(xWorld, yWorld, 150);
+        return;
+      }
+
+      const effectContainer = document.getElementById(`effect-${target.id}`);
+      if (!effectContainer) return;
+      effectContainer.innerHTML = "";
+
+      if (spellType === "ice"){
+        target.state = "frozen";
+        target.stateTimer = 1.2;
+        target.stats.frozenTaken++;
+        caster.stats.frozenGiven++;
+        Sound.ice();
+        createFloatingText(target.id, "FROZEN!", "#60a5fa");
+
+        const ice = document.createElement("div");
+        ice.className = "ice-block";
+        effectContainer.appendChild(ice);
+        fxIce(xWorld, yWorld);
+      }
+
+      if (spellType === "ignite"){
+        target.state = "ignite";
+        target.stateTimer = 1.6;
+        target.stats.igniteTaken++;
+        caster.stats.igniteGiven++;
+        Sound.fire();
+        createFloatingText(target.id, "IGNITE!", "#ef4444");
+
+        const fire = document.createElement("div");
+        fire.className = "ignite-effect";
+        effectContainer.appendChild(fire);
+        fxEmbers(xWorld, yWorld);
+      }
+    }
+
+    /* --------------------------
+       Setup and race building
+    -------------------------- */
+    function computeWorldSize(){
+      const viewportW = elWorldViewport.clientWidth || 1000;
+      STATE.worldW = Math.max(Math.floor(viewportW * 2.4), 1800);
+      STATE.worldH = Math.max(STATE.racers.length * STATE.laneHeight, 6 * STATE.laneHeight);
+      STATE.finishX = STATE.worldW - STATE.finishPadding;
+
+      elWorld.style.width = `${STATE.worldW}px`;
+      elWorld.style.height = `${STATE.worldH}px`;
+      elWorldViewport.style.height = `${STATE.worldH}px`;
+      document.getElementById("track-container").style.minHeight = `${STATE.worldH}px`;
+
+      document.getElementById("world-label").innerText = STATE.worldW >= 2400 ? "Very Long" : "Long";
+    }
+
+    function setupWorld(){
+      Array.from(elWorld.children).forEach(c => {
+         if(c.id !== "fx-canvas") c.remove();
+      });
+
+      const finish = document.createElement("div");
+      finish.className = "finish-line";
+      finish.style.left = `${STATE.finishX}px`;
+      finish.style.width = "28px";
+
+      const banner = document.createElement("div");
+      banner.className = "finish-banner";
+      banner.innerText = "FINISH";
+      finish.appendChild(banner);
+      elWorld.appendChild(finish);
+
+      STATE.racers.forEach((r, idx) => {
+        r.lane = idx;
+        r.y = idx * STATE.laneHeight;
+
+        const lane = document.createElement("div");
+        lane.className = "lane";
+        lane.style.position = "absolute";
+        lane.style.left = "0px";
+        lane.style.top = `${r.y}px`;
+        lane.style.width = `${STATE.worldW}px`;
+        lane.style.height = `${STATE.laneHeight}px`;
+
+        const duck = document.createElement("div");
+        duck.id = `duck-${r.id}`;
+        duck.className = "duck-wrapper";
+        duck.style.transform = `translate3d(${r.x}px, 10px, 0)`;
+
+        const nameLabel = document.createElement("div");
+        nameLabel.className = "absolute bottom-[110%] mb-1 left-1/2 -translate-x-1/2 bg-black/70 border border-slate-500 text-white font-bold text-[9px] px-2 py-1 rounded whitespace-nowrap cursor-pointer hover:bg-black/90 pointer-events-auto shadow-md";
+        nameLabel.innerText = r.name;
+        nameLabel.title = "Click to Cheer (1 per duck)";
+        nameLabel.addEventListener("click", () => cheerDuck(r.id));
+        
+        duck.appendChild(nameLabel);
+
+        duck.innerHTML += `
+          <div id="effect-${r.id}" class="absolute inset-0 pointer-events-none"></div>
+          <div id="shield-${r.id}" class="absolute inset-0 pointer-events-none"></div>
+          ${getDuckSVG(r.color, r.hat, r.pattern)}
+        `;
+        lane.appendChild(duck);
+
+        elWorld.appendChild(lane);
+      });
+    }
+
+    function updateMinimap(){
+      const hint = document.getElementById("minimap-hint");
+      if (STATE.mode === "aram") hint.innerText = "Power-ups: 🥖 Boost • ⚓ Slow • 🛡 Block • 🌀 Blink";
+      else hint.innerText = "Pure Racing / No Items";
+
+      elMinimap.querySelectorAll(".dot").forEach(d => d.remove());
+      for (const r of STATE.racers){
+        const dot = document.createElement("div");
+        dot.className = "dot absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-black/40";
+        dot.style.background = r.color;
+        const pct = clamp((r.x / STATE.finishX) * 100, 0, 100);
+        dot.style.left = `calc(${pct}% - 5px)`;
+        dot.title = `${r.name}`;
+        elMinimap.appendChild(dot);
+      }
+    }
+
+    function updateShieldVisual(racer){
+      const sh = document.getElementById(`shield-${racer.id}`);
+      if (!sh) return;
+      sh.innerHTML = racer.shield ? `<div class="shield-bubble"></div>` : "";
+    }
+
+    /* --------------------------
+       Start, countdown, loop
+    -------------------------- */
+    function startRace(){
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      const input = document.getElementById("player-input").value;
+      const names = input.split("\n").map(s => s.trim()).filter(Boolean);
+      if (names.length < 2){
+        alert("Please enter at least 2 summoners.");
+        return;
+      }
+
+      STATE.raceDuration = parseInt(document.getElementById("duration-input").value, 10) || 10;
+      STATE.mode = document.getElementById("mode-input").value || "blind";
+      STATE.particles = !!document.getElementById("particles-input").checked;
+
+      let modeText = "Blind Pick";
+      if (STATE.mode === "ranked") modeText = "Ranked";
+      if (STATE.mode === "aram") modeText = "ARAM Mayhem";
+      elModeLabel.innerText = modeText;
+
+      const powerupHint = document.getElementById("powerup-status-label");
+      if (STATE.mode === "aram") powerupHint.innerText = "Powerups & Spells Active";
+      else if (STATE.mode === "blind") powerupHint.innerText = "Rubberbanding Active";
+      else powerupHint.innerText = "Pure Skill. No Mechanics.";
+
+      STATE.players = names;
+      STATE.finishedRacers = [];
+      STATE.swapSides = false;
+      STATE.usedLines.clear();
+      STATE.chatTimer = parseFloat(chatFreqInput.value || "2.0");
+      STATE.powerups = [];
+      STATE.powerupTimer = 0.8;
+      STATE.confettiDone = false;
+
+      STATE.racers = names.map((name, i) => ({
+        id: i,
+        name,
+        color: getRandomColor(),
+        hat: randItem(HATS),
+        pattern: randItem(PATTERNS),
+        chatColor: randItem(CHAT_COLORS),
+
+        x: 0,
+        y: 0,
+        lane: i,
+
+        finished: false,
+        finishTime: 0,
+
+        shield: false,
+        cheered: false,
+
+        state: "normal",
+        stateTimer: 0,
+
+        skill: 0.90 + Math.random() * 0.22,
+        spellCD: randRange(0.8, 2.6),
+
+        stats: {
+          spells: 0,
+          frozenGiven: 0,
+          igniteGiven: 0,
+          frozenTaken: 0,
+          igniteTaken: 0,
+          blocks: 0,
+          cheers: 0,
+          powerups: 0,
+          bread: 0,
+          anchor: 0,
+          shield: 0,
+          portal: 0
+        }
+      }));
+
+      beginRaceSequence();
+    }
+
+    function beginRaceSequence(){
+      switchScreen("race");
+      elChatContent.innerHTML = "";
+      STATE.elapsed = 0;
+      STATE.paused = false;
+      elPauseOverlay.classList.remove("show");
+
+      computeWorldSize();
+      setupWorld();
+      resizeFXCanvas();
+      updateMinimap();
+
+      let count = 3;
+      elCountOverlay.classList.remove("hidden");
+      const runCount = () => {
+        elCountText.innerText = count > 0 ? count : "GO!";
+        elCountText.classList.remove("countdown-animate");
+        void elCountText.offsetWidth;
+        elCountText.classList.add("countdown-animate");
+        Sound.count(count);
+
+        if (count === 0){
+          setTimeout(() => {
+            elCountOverlay.classList.add("hidden");
+            STATE.isRacing = true;
+            STATE.startTs = performance.now();
+            STATE.lastFrameTs = STATE.startTs;
+            requestAnimationFrame(gameLoop);
+          }, 450);
+        } else {
+          count--;
+          setTimeout(runCount, 1000);
+        }
+      };
+      runCount();
+    }
+
+    function cheerDuck(id){
+      if (!STATE.isRacing || STATE.paused) return;
+      const r = STATE.racers.find(x => x.id === id);
+      if (!r || r.finished) return;
+      if (r.cheered) {
+        createFloatingText(r.id, "NOPE", "#94a3b8");
+        return;
+      }
+      r.cheered = true;
+      r.stats.cheers++;
+      r.state = "boost";
+      r.stateTimer = Math.max(r.stateTimer, 0.8);
+      Sound.quack();
+      createFloatingText(r.id, "CHEER!", "#22d3ee");
+      addChatMessage("Crowd", `${randItem(LINES.CROWD)} (${r.name})`, "text-cyan-300");
+    }
+
+    function togglePause(){
+      if (!STATE.isRacing) return;
+      STATE.paused = !STATE.paused;
+      elPauseOverlay.classList.toggle("show", STATE.paused);
+      pauseBtn.innerText = STATE.paused ? "▶ Resume" : "⏸ Pause";
+      if (!STATE.paused){
+        STATE.lastFrameTs = performance.now();
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function skipRace(){
+      if (!STATE.isRacing) return;
+      const now = performance.now();
+      for (const r of STATE.racers){
+        if (!r.finished){
+          r.finished = true;
+          r.finishTime = now + Math.random() * 600;
+          STATE.finishedRacers.push(r);
+        }
+      }
+      endRace();
+    }
+
+    function gameLoop(ts){
+      if (!STATE.isRacing) return;
+      if (STATE.paused) return;
+
+      const speedMult = parseFloat(speedInput.value || "1");
+      speedLabel.innerText = `${speedMult.toFixed(2)}x`;
+
+      const rawDt = (ts - STATE.lastFrameTs) / 1000;
+      const dt = clamp(rawDt, 0, 0.05) * speedMult;
+      STATE.lastFrameTs = ts;
+      STATE.elapsed += dt;
+
+      elTimer.innerText = STATE.elapsed.toFixed(2);
+
+      const activeRacers = STATE.racers.filter(r => !r.finished);
+      const isARAM = STATE.mode === "aram";
+      const isBlind = STATE.mode === "blind";
+      const isRanked = STATE.mode === "ranked";
+
+      // chat pacing using slider
+      STATE.chatTimer -= dt;
+      if (STATE.chatTimer <= 0 && activeRacers.length > 0){
+        const baseFreq = parseFloat(chatFreqInput.value || "2.0");
+        // Randomise pacing slightly around the chosen frequency to seem natural
+        STATE.chatTimer = baseFreq * (0.75 + Math.random() * 0.5);
+
+        const speaker = randItem(activeRacers);
+        const sorted = [...STATE.racers].sort((a,b) => b.x - a.x);
+        const rank = sorted.findIndex(r => r.id === speaker.id);
+        const total = sorted.length;
+        const isFirst = rank === 0;
+        const isLast = rank === total - 1;
+        const isTopHalf = rank < total / 2;
+
+        let category = [];
+        const roll = Math.random();
+
+        if (roll < 0.01) category = LINES.ULTRA_RARE;
+        else if (roll < 0.11) category = LINES.RARE;
+        else {
+          if (Math.random() < 0.65) category = LINES.GENERIC;
+          else {
+            if (isFirst) category = LINES.WINNING;
+            else if (isLast) category = LINES.LAST;
+            else if (isTopHalf) category = LINES.TOP_HALF;
+            else category = LINES.GENERIC;
+          }
+        }
+
+        const available = category.filter(l => !STATE.usedLines.has(l));
+        if (available.length){
+          const line = randItem(available);
+          STATE.usedLines.add(line);
+          addChatMessage(speaker.name, line, speaker.chatColor);
+        }
+      }
+
+      // powerups spawn
+      if (isARAM) {
+          STATE.powerupTimer -= dt;
+          if (STATE.powerupTimer <= 0 && activeRacers.length > 0){
+            STATE.powerupTimer = 1.15 + Math.random() * 0.6;
+            spawnPowerup();
+          }
+      }
+
+      const baseSpeed = (STATE.finishX / STATE.raceDuration);
+
+      for (const r of STATE.racers){
+        if (r.finished) continue;
+
+        if (r.stateTimer > 0) r.stateTimer -= dt;
+        if (r.stateTimer <= 0){
+          if (r.state === "frozen" || r.state === "ignite"){
+            const eff = document.getElementById(`effect-${r.id}`);
+            if (eff) eff.innerHTML = "";
+          }
+          if (r.state !== "normal") r.state = "normal";
+        }
+
+        // spells
+        if (isARAM) {
+            r.spellCD -= dt;
+            const spellAggro = 0.045;
+            if (r.spellCD <= 0 && activeRacers.length > 1 && Math.random() < spellAggro){
+              r.spellCD = randRange(1.8, 3.4);
+              const targets = activeRacers.filter(t => t.id !== r.id);
+              if (targets.length){
+                const t = randItem(targets);
+                const spell = Math.random() < 0.52 ? "ice" : "ignite";
+                r.stats.spells++;
+                applySpellEffect(t, spell, r);
+                createFloatingText(r.id, "CAST!", "#fff");
+              }
+            }
+        }
+
+        let speed = baseSpeed * r.skill;
+
+        if (!isRanked && STATE.elapsed > (STATE.raceDuration * 0.80) && r.x < STATE.finishX * 0.72) {
+          speed *= 1.25;
+        }
+
+        if (r.state === "frozen") speed = 0;
+        if (r.state === "ignite") speed *= 0.45;
+        if (r.state === "boost") speed *= 1.75;
+        if (r.state === "stumble") speed *= 0.35;
+
+        if (r.state === "normal" && Math.random() < 0.010){
+          if (Math.random() < 0.55){
+            r.state = "boost";
+            r.stateTimer = 0.55;
+            Sound.quack();
+          } else {
+            r.state = "stumble";
+            r.stateTimer = 0.45;
+          }
+        }
+
+        r.x += speed * dt;
+        r.x = Math.min(r.x, STATE.finishX);
+
+        for (const p of STATE.powerups){
+          if (p.collected) continue;
+          if (p.lane !== r.lane) continue;
+
+          const dx = Math.abs((r.x + STATE.duckW * 0.4) - p.x);
+          if (dx < 18){
+            collectPowerup(r, p);
+          }
+        }
+
+        if (r.x >= STATE.finishX){
+          r.finished = true;
+          r.finishTime = performance.now();
+          STATE.finishedRacers.push(r);
+          Sound.tone(620, "sine", 0.10, 0.05);
+          const eff = document.getElementById(`effect-${r.id}`);
+          if (eff) eff.innerHTML = "";
+        }
+
+        const bob = Math.sin((ts / 220) + r.id) * 4;
+        
+        // draw splash anchored dynamically to physical duck wake
+        const xWorld = r.x + 24; 
+        const yWorld = r.y + 10 + bob + 46; 
+        if (speed > 60) fxSplash(xWorld, yWorld, speed);
+
+        const duckEl = document.getElementById(`duck-${r.id}`);
+        if (duckEl){
+          duckEl.style.transform = `translate3d(${r.x}px, ${10 + bob}px, 0)`;
+
+          duckEl.classList.toggle("speed-boost", r.state === "boost");
+          duckEl.classList.toggle("stumble", r.state === "stumble");
+          duckEl.classList.toggle("frozen", r.state === "frozen");
+          duckEl.classList.toggle("ignite", r.state === "ignite");
+        }
+
+        updateShieldVisual(r);
+      }
+
+      if (isARAM) cleanupPowerups();
+      updateMinimap();
+
+      const leader = STATE.racers.reduce((a,b) => (a.x > b.x ? a : b), STATE.racers[0]);
+      const viewW = elWorldViewport.clientWidth || 1000;
+      STATE.camTargetX = clamp(leader.x - viewW * 0.35, 0, STATE.worldW - viewW);
+      STATE.camX = lerp(STATE.camX, STATE.camTargetX, 0.10);
+      elWorld.style.transform = `translate3d(${-STATE.camX}px, 0, 0)`;
+
+      document.getElementById("clouds").style.transform = `translateX(${-STATE.camX * 0.12}px)`;
+      document.getElementById("stars").style.transform = `translateX(${-STATE.camX * 0.04}px)`;
+      document.getElementById("sky").style.transform = `translateX(${-STATE.camX * 0.02}px)`;
+
+      fxDraw(dt);
+
+      const elapsedReal = STATE.elapsed;
+      if (STATE.racers.every(r => r.finished) || elapsedReal > (STATE.raceDuration + STATE.timeLimitExtra)){
+        endRace();
+        return;
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function endRace(){
+      STATE.isRacing = false;
+      Sound.win();
+
+      STATE.finishedRacers.sort((a,b) => a.finishTime - b.finishTime);
+
+      const done = new Set(STATE.finishedRacers.map(r => r.id));
+      for (const r of STATE.racers){
+        if (!done.has(r.id)) STATE.finishedRacers.push(r);
+      }
+
+      const winner = STATE.finishedRacers[0];
+      const winnerTime = (winner.finishTime - STATE.startTs) / 1000;
+      const currentBest = parseFloat(localStorage.getItem("duck_racer_best")) || 9999;
+
+      if (winnerTime < currentBest){
+        localStorage.setItem("duck_racer_best", winnerTime);
+        localStorage.setItem("duck_racer_best_player", winner.name);
+      }
+
+      burstConfetti(STATE.finishX + 10, 90);
+
+      renderResults();
+      switchScreen("results");
+    }
+
+    /* --------------------------
+       Results and teams
+    -------------------------- */
+    function toggleTeamMode(mode){
+      STATE.teamMode = mode;
+      const btnAlt = document.getElementById("btn-alt");
+      const btnSplit = document.getElementById("btn-split");
+      const active = "bg-blue-600 text-white font-bold ring-2 ring-blue-300";
+      const inactive = "bg-slate-700 text-slate-300 font-bold hover:bg-slate-600";
+
+      if (mode === "alternating"){
+        btnAlt.className = `px-4 py-2 rounded transition ${active}`;
+        btnSplit.className = `px-4 py-2 rounded transition ${inactive}`;
+      } else {
+        btnSplit.className = `px-4 py-2 rounded transition ${active}`;
+        btnAlt.className = `px-4 py-2 rounded transition ${inactive}`;
+      }
+      renderResults();
+    }
+
+    function toggleSwap(){
+      STATE.swapSides = !STATE.swapSides;
+      renderResults();
+    }
+
+    function getTeamData(){
+      let blue = [];
+      let red = [];
+
+      if (STATE.teamMode === "alternating"){
+        STATE.finishedRacers.forEach((r, i) => {
+          (i % 2 === 0 ? blue : red).push({ ...r, rank: i + 1 });
+        });
+      } else {
+        const half = Math.ceil(STATE.finishedRacers.length / 2);
+        STATE.finishedRacers.forEach((r, i) => {
+          (i < half ? blue : red).push({ ...r, rank: i + 1 });
+        });
+      }
+
+      if (STATE.swapSides) return { blueTeam: red, redTeam: blue };
+      return { blueTeam: blue, redTeam: red };
+    }
+
+    function renderResults(){
+      updateBestRecordDisplay();
+      const { blueTeam, redTeam } = getTeamData();
+
+      const top3 = STATE.finishedRacers.slice(0, 3);
+      const order = [];
+      if (top3[1]) order.push({ ...top3[1], place: 2, h: "h-24", c: "bg-gray-400" });
+      if (top3[0]) order.push({ ...top3[0], place: 1, h: "h-36", c: "bg-yellow-500" });
+      if (top3[2]) order.push({ ...top3[2], place: 3, h: "h-18", c: "bg-amber-700" });
+
+      elPodium.innerHTML = order.map(r => `
+        <div class="flex flex-col items-center animate-bounce" style="animation-duration:${r.place === 1 ? "1.9s" : "2.6s"};">
+          <div class="mb-2 text-center">
+            <div class="font-bold text-xs md:text-sm text-white mb-1 pixel-font drop-shadow-md">${escapeHTML(r.name)}</div>
+            ${getDuckSVG(r.color, r.hat, r.pattern, "w-12 h-12 md:w-16 md:h-16")}
+          </div>
+          <div class="${r.c} ${r.h} w-20 md:w-24 rounded-t-lg border-x-4 border-t-4 border-black/20 flex items-end justify-center pb-2 shadow-lg relative">
+            <span class="text-2xl md:text-4xl font-bold text-white/90 pixel-font">${r.place}</span>
+            ${r.place === 1 ? `<span class="absolute -top-6 text-3xl">🏆</span>` : ""}
+          </div>
+        </div>
+      `).join("");
+
+      const makeList = (team, isBlue) => team.map(p => `
+        <li class="flex items-center justify-between bg-slate-800 p-3 rounded border border-slate-700 transition hover:scale-[1.01]">
+          <div class="flex items-center gap-3">
+            <span class="text-lg font-bold pixel-font ${isBlue ? "text-blue-500" : "text-red-500"} w-8">#${p.rank}</span>
+            <div class="w-10 h-10 overflow-hidden rounded-full bg-slate-700 flex items-center justify-center border ${isBlue ? "border-blue-500" : "border-red-500"}">
+              ${getDuckSVG(p.color, p.hat, p.pattern, "w-12 h-12")}
+            </div>
+            <div class="flex flex-col">
+              <span class="font-bold text-white text-sm md:text-base">${escapeHTML(p.name)}</span>
+              <span class="text-[10px] text-slate-400 uppercase tracking-wider">${p.hat === "none" ? "No Hat" : p.hat} / ${p.pattern === "none" ? "Plain" : p.pattern}</span>
+            </div>
+          </div>
+          <span class="text-xs font-mono ${p.rank === 1 ? "text-yellow-400 font-bold flex items-center gap-1" : "text-slate-500"}">
+            ${p.rank === 1 ? "🏆" : ""}
+            ${((p.finishTime - STATE.startTs) / 1000).toFixed(2)}s
+          </span>
+        </li>
+      `).join("");
+
+      elBlueList.innerHTML = makeList(blueTeam, true);
+      elRedList.innerHTML = makeList(redTeam, false);
+    }
+
+    /* --------------------------
+       Copy teams
+    -------------------------- */
+    function copyAll(){
+      const { blueTeam, redTeam } = getTeamData();
+      let text = "🏆 LOBBY RESULTS 🏆\n\n";
+      text += "🔵 BLUE SIDE:\n";
+      blueTeam.forEach(p => text += `- ${p.name}\n`);
+      text += "\n🔴 RED SIDE:\n";
+      redTeam.forEach(p => text += `- ${p.name}\n`);
+
+      const el = document.createElement("textarea");
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      showToast("Copied teams!");
+    }
+
+    function showToast(msg){
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-msg").innerText = msg || "Done!";
+      toast.classList.add("toast-enter");
+      setTimeout(() => toast.classList.remove("toast-enter"), 2000);
+    }
+
+    /* --------------------------
+       Rematch and reset
+    -------------------------- */
+    function rematch(){
+      STATE.finishedRacers = [];
+      STATE.swapSides = false;
+      STATE.usedLines.clear();
+      STATE.powerups = [];
+      STATE.powerupTimer = 0.8;
+
+      for (const r of STATE.racers){
+        r.x = 0;
+        r.finished = false;
+        r.finishTime = 0;
+        r.state = "normal";
+        r.stateTimer = 0;
+        r.spellCD = randRange(0.8, 2.6);
+        r.shield = false;
+        r.cheered = false;
+        r.stats = {
+          spells: 0,
+          frozenGiven: 0,
+          igniteGiven: 0,
+          frozenTaken: 0,
+          igniteTaken: 0,
+          blocks: 0,
+          cheers: 0,
+          powerups: 0,
+          bread: 0,
+          anchor: 0,
+          shield: 0,
+          portal: 0
+        };
+      }
+
+      beginRaceSequence();
+    }
+
+    function resetGame(){
+      switchScreen("setup");
+      updateBestRecordDisplay();
+    }
+
+    /* --------------------------
+       Events and init
+    -------------------------- */
+    document.getElementById("duration-input").addEventListener("input", (e) => {
+      document.getElementById("duration-display").innerText = e.target.value;
+    });
+
+    muteBtn.addEventListener("click", () => {
+      isMuted = !isMuted;
+      muteBtn.innerText = isMuted ? "🔇 Muted" : "🔊 Sound On";
+      muteBtn.classList.toggle("bg-red-900", isMuted);
+      if (!isMuted && audioCtx.state === "suspended") audioCtx.resume();
+    });
+
+    let reducedMotion = false;
+    reduceMotionBtn.addEventListener("click", () => {
+      reducedMotion = !reducedMotion;
+      document.body.classList.toggle("reduced-motion", reducedMotion);
+      reduceMotionBtn.innerText = reducedMotion ? "🌀 Motion Off" : "🌀 Motion On";
+      showToast(reducedMotion ? "Reduced motion enabled" : "Motion enabled");
+    });
+
+    startBtn.addEventListener("click", startRace);
+    pauseBtn.addEventListener("click", togglePause);
+    skipBtn.addEventListener("click", skipRace);
+
+    speedInput.addEventListener("input", () => {
+      speedLabel.innerText = `${parseFloat(speedInput.value || "1").toFixed(2)}x`;
+    });
+
+    chatFreqInput.addEventListener("input", () => {
+      chatFreqLabel.innerText = `${parseFloat(chatFreqInput.value).toFixed(1)}s`;
+    });
+
+    spectatorSend.addEventListener("click", () => {
+      const txt = spectatorInput.value.trim();
+      if (!txt) return;
+      addChatMessage("Spectator", txt, "text-slate-200");
+      spectatorInput.value = "";
+    });
+
+    spectatorInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter"){
+        e.preventDefault();
+        spectatorSend.click();
+      }
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space"){
+        if (STATE.isRacing){
+          e.preventDefault();
+          togglePause();
+        }
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (!screens.race.classList.contains("hidden")){
+        computeWorldSize();
+        setupWorld();
+        resizeFXCanvas();
+        updateMinimap();
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      updateBestRecordDisplay();
+      resizeFXCanvas();
+    });
+  </script>
+</body>
+</html>

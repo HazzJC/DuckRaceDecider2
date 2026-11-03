@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Duck Race Decider</title>
+    <meta name="description" content="A 3D duck race that splits your group into teams, with duck shoutcasters, river objectives and instant replays." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="stage"></div>
+      <div id="wipe" class="wipe"></div>
+
+      <div id="loading" class="loading">
+        <div class="hex-spinner"><span></span></div>
+        <div class="loading-text">Filling the river</div>
+      </div>
+
+      <!-- Global controls -->
+      <div class="global-controls">
+        <button id="mute-btn" class="orb-btn" aria-label="Mute"></button>
+        <button id="settings-btn" class="orb-btn" aria-label="Settings" aria-expanded="false"></button>
+        <div id="settings" class="settings hex-panel" hidden>
+          <div class="panel-title">Settings</div>
+          <label class="slider-row">Music <input id="vol-music" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="slider-row">Effects <input id="vol-sfx" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="slider-row">Casters <input id="vol-casters" type="range" min="0" max="1" step="0.05" /></label>
+          <label class="check-row"><input id="caster-voice" type="checkbox" checked /> Caster quack-voice</label>
+          <label class="check-row"><input id="reduce-motion" type="checkbox" /> Reduce motion</label>
+          <label class="slider-row">Graphics
+            <select id="quality-input">
+              <option value="auto">Auto</option>
+              <option value="low">Low</option>
+              <option value="med">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <!-- SETUP: champion-select style lobby -->
+      <section id="setup" class="screen">
+        <div class="lobby">
+          <div class="lobby-left hex-panel">
+            <div class="brand">
+              <div class="brand-kicker">Quack Championship Series</div>
+              <h1>Summoner's River</h1>
+              <div class="brand-sub"><span class="orn"></span>Duck Race Decider<span class="orn"></span></div>
+            </div>
+
+            <div class="step"><span class="step-num">I</span>Summoners <span class="muted">one per line</span></div>
+            <textarea id="player-input" spellcheck="false" placeholder="TopLaner&#10;JungleKing&#10;MidDiff&#10;ADCarry&#10;SupportMain"></textarea>
+
+            <div class="step"><span class="step-num">II</span>Game mode</div>
+            <div class="mode-cards" role="radiogroup">
+              <button class="mode-card" data-mode="blind" role="radio"><i data-icon="tower"></i><strong>Blind Pick</strong><span>Objectives + late catch-up</span></button>
+              <button class="mode-card" data-mode="ranked" role="radio"><i data-icon="crown"></i><strong>Ranked</strong><span>Pure race, no items</span></button>
+              <button class="mode-card" data-mode="aram" role="radio"><i data-icon="fire"></i><strong>ARAM Mayhem</strong><span>Spells, items, objectives</span></button>
+            </div>
+
+            <div class="step"><span class="step-num">III</span>Match length <span class="gold" id="duration-display-wrap"><span id="duration-display">30</span>s</span></div>
+            <div class="setup-row">
+              <input type="range" id="duration-input" min="15" max="60" value="30" step="5" />
+              <button id="reroll-btn" class="btn sm" title="Re-roll duck skins"><i data-icon="dice"></i>Re-roll skins</button>
+            </div>
+
+            <button id="start-btn" class="btn-play"><span>Lock in</span></button>
+            <p class="setup-hint">Click a duck's nameplate mid-race to cheer it on (once each). Space pauses.</p>
+          </div>
+
+          <div class="lobby-right">
+            <div class="lobby-head"><span class="orn"></span><span>Lobby &middot; <span id="name-count">0</span> ducks</span><span class="orn"></span></div>
+            <div id="lobby-cards" class="lobby-cards"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HUD -->
+      <section id="hud" class="screen" hidden>
+        <header class="scorebar">
+          <div class="sb-wing sb-left">
+            <span class="sb-logo">QCS</span>
+            <span class="sb-mode" id="mode-label">Blind Pick</span>
+          </div>
+          <div class="sb-center">
+            <div class="sb-timer" id="timer">0.00</div>
+            <div class="sb-leader"><i data-icon="crown"></i><span id="leader-name">—</span><span class="sb-gap" id="leader-gap"></span></div>
+          </div>
+          <div class="sb-wing sb-right">
+            <label class="mini-ctl" title="Race speed"><i data-icon="speed"></i><input id="speed-input" type="range" min="0.6" max="1.6" value="1" step="0.05" /><span id="speed-label">1.00x</span></label>
+            <label class="mini-ctl hide-sm" title="Chat rate"><i data-icon="chat"></i><input id="chat-freq-input" type="range" min="0.2" max="6" value="2" step="0.2" /><span id="chat-freq-label">2.0s</span></label>
+            <button id="pause-btn" class="btn icon" aria-label="Pause"></button>
+            <button id="skip-btn" class="btn sm"><i data-icon="skip"></i>Skip</button>
+          </div>
+        </header>
+
+        <div class="minimap" id="minimap" aria-label="Race progress"><div class="mm-track"><div class="mm-fill" id="mm-fill"></div></div></div>
+
+        <aside class="standings hex-panel" id="standings"></aside>
+
+        <div class="booth">
+          <div class="booth-frame-wrap"><div id="booth-frame" class="booth-frame"></div></div>
+          <div class="booth-tag"><span class="live-dot"></span>LIVE · Caster desk</div>
+          <div id="killfeed" class="killfeed"></div>
+        </div>
+
+        <div id="callout" class="callout" aria-live="polite"></div>
+        <div id="countdown" class="countdown" hidden></div>
+        <div id="replay-banner" class="replay-banner hex-panel" hidden><span class="rb-tag"><i data-icon="replay"></i>Replay</span><span id="replay-label"></span><button id="replay-skip" class="btn sm">Skip</button></div>
+        <div id="photo-finish" class="photo-finish" hidden><div class="pf-frame"></div><div class="pf-title">Photo Finish</div><span id="photo-margin"></span></div>
+        <div id="pause-overlay" class="pause-overlay" hidden><div>Paused</div><span>Press Space or ▶ to resume</span></div>
+
+        <div class="lower">
+          <div id="caption" class="caption hex-panel" hidden aria-live="polite">
+            <img class="cap-portrait" alt="" />
+            <div class="cap-body">
+              <div class="cap-head"><span class="cap-name"></span><span class="cap-role"></span></div>
+              <div class="cap-text"></div>
+            </div>
+          </div>
+          <div class="chat hex-panel">
+            <div class="chat-head">[All] Chat</div>
+            <div id="chat-box" class="chat-box"><div id="chat-content"></div></div>
+            <form id="spectator-form" class="chat-input">
+              <input id="spectator-input" placeholder="Spectator message…" maxlength="80" autocomplete="off" />
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- RESULTS -->
+      <section id="results" class="screen" hidden>
+        <div class="results-top">
+          <div class="victory-banner"><span class="vb-line"></span><span class="vb-text">Victory</span><span class="vb-line"></span></div>
+          <div class="victory-winner"><img id="victory-portrait" alt="" /><div><div class="victory-name" id="victory-name"></div><div class="record">All-time record <span id="best-record-display">--</span></div></div></div>
+        </div>
+        <div class="results-panel hex-panel">
+          <div class="team-controls">
+            <div class="seg">
+              <button id="btn-alt" class="seg-btn active">Alternating</button>
+              <button id="btn-split" class="seg-btn">Top / Bottom</button>
+            </div>
+            <button id="btn-swap" class="btn sm"><i data-icon="swap"></i>Swap sides</button>
+            <button id="btn-copy" class="btn sm"><i data-icon="copy"></i>Copy teams</button>
+            <button id="btn-share" class="btn sm"><i data-icon="share"></i>Share card</button>
+            <button id="btn-replay" class="btn sm"><i data-icon="replay"></i>Replay</button>
+          </div>
+          <div class="teams">
+            <div class="team team-blue"><h2>Blue Side</h2><ul id="blue-team-list"></ul></div>
+            <div class="team team-red"><h2>Red Side</h2><ul id="red-team-list"></ul></div>
+          </div>
+          <div class="results-actions">
+            <button id="btn-new" class="btn">New players</button>
+            <button id="btn-rematch" class="btn-play"><span>Rematch</span></button>
+          </div>
+        </div>
+      </section>
+
+      <div id="toast" class="toast" role="status"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
